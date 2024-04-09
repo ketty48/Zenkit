@@ -1,0 +1,272 @@
+{
+    "swagger": "2.0",
+    "info": {
+      "title": "Todo API",
+      "description": "API for managing tasks",
+      "version": "1.0.0"
+    },
+    "host": "localhost:5000",
+    "basePath": "",
+    "schemes": ["http", "https"],
+    "paths": {
+      "/register": {
+        "post": {
+          "summary": "Create account",
+          "description": "Create a new account",
+          "tags": ["Authentication"],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "schema": {
+                "$ref": "#/definitions/account"
+              },
+              "required": true,
+              "description": "Account object"
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Account created"
+            }
+          }
+        }
+      },
+      "/login": {
+        "post": {
+          "summary": "Login",
+          "description": "Login to the application",
+          "tags": ["Authentication"],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "schema": {
+                "$ref": "#/definitions/account"
+              },
+              "required": true,
+              "description": "Credentials object"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Login successful"
+            }
+          }
+        }
+      },
+      "/todo/createTask": {
+        "post": {
+          "summary": "Create a task",
+          "description": "Create a new task",
+          "tags": ["Tasks"],
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "schema": {
+                "$ref": "#/definitions/task"
+              },
+              "required": true,
+              "description": "Task object"
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Task created"
+            }
+          }
+        }
+      },
+      "/todo/getAllTasks": {
+        "get": {
+          "summary": "Get All Tasks",
+          "description": "Get All Tasks",
+          "tags": ["Tasks"],
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Tasks Fetched successfully"
+            },
+            "404": {
+              "description": "Error for fetching tasks"
+            }
+          }
+        }
+      },
+      "/todo/{id}": {
+        "get": {
+          "summary": "Get a task by ID",
+          "description": "Get a task by ID",
+          "tags": ["Tasks"],
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "description": "ID of the task to retrieve",
+              "required": true,
+              "type": "string"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful response"
+            },
+            "404": {
+              "description": "Task not found"
+            }
+          }
+        },
+        "put": {
+          "summary": "Update a task by ID",
+          "description": "Update a task by ID",
+          "tags": ["Tasks"],
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "description": "ID of the Task to update",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "in": "body",
+              "name": "body",
+              "schema": {
+                "$ref": "#/definitions/task"
+              },
+              "required": true,
+              "description": "Updated task object"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Task updated"
+            },
+            "404": {
+              "description": "Task not found"
+            }
+          }
+        },
+        "delete": {
+          "summary": "Delete a task by ID",
+          "description": "Delete a task by ID",
+          "tags": ["Tasks"],
+          "security": [
+            {
+              "BearerAuth": []
+            }
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "description": "ID of the task to delete",
+              "required": true,
+              "type": "string"
+            }
+          ],
+          "responses": {
+            "204": {
+              "description": "Task deleted"
+            },
+            "404": {
+              "description": "Task not found"
+            }
+          }
+        }
+      }
+    },
+    "definitions": {
+      "account": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6
+          },
+          "email": {
+            "type": "string",
+            "unique": true
+          }
+        },
+        "required": ["username", "password", "email"]
+      },
+      "task": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Todo", "Progress", "Completed", "Late", "Over-due"],
+            "default": "Todo"
+          },
+          "dueDate": {
+            "type": "object",
+            "properties": {
+              "startDate": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endDate": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "startTime": {
+                "type": "string",
+                "default": "12:00 AM"
+              },
+              "endTime": {
+                "type": "string",
+                "default": "12:00 AM"
+              },
+              "duration": {
+                "type": "number"
+              },
+              "durationType": {
+                "type": "string",
+                "enum": ["Minutes", "Hours", "Days", "Weeks", "Months"],
+                "default": "Days"
+              }
+            }
+          }
+        },
+        "required": ["name", "description", "status"]
+      }
+    },
+    "securityDefinitions": {
+      "BearerAuth": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  }
+  
