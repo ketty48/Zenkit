@@ -1,66 +1,62 @@
 import Task from '../models/todo.model.js'
-const createTask = async (req, res) => {
+import {body, validationResult} from 'express-validator'
+  // Validate the 'name' field
+  const createTaskValidation = [
+    // Validate the 'name' field
+    body('name')
+      .trim()
+      .notEmpty().withMessage('Name is required')
+      .isLength({ min: 3 }).withMessage('Name must be at least 3 characters long'),
+    
+    // Exclude validation for the 'status' field
+    body('status').optional(),
+  ]
+
+const createTask = async (req, res, next) => {
   try {
     const currentDate = new Date();
     const taskData = req.body;
 
-    // Check if name and description are provided
-    if (!taskData.name || !taskData.description) {
-      throw new Error("Name and description are required fields.");
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    console.log("Start Date:", taskData.dueDate.startDate);
+    console.log("End Date:", taskData.dueDate.endDate);
+if (taskData.dueDate) {
+    setDefaultTime(taskData.dueDate);
+    generateDurationAndType(taskData.dueDate);
+
+    // Ensure endDate is generated before parsing start and end times
+    if (!taskData.dueDate.endDate) {
+        taskData.dueDate.endDate = calculateEndDate(taskData.dueDate);
     }
 
-    // Set default values for start and end time if not provided
-    if (taskData.dueDate) {
-      if (taskData.dueDate.startDate && !taskData.dueDate.startTime) {
-        taskData.dueDate.startTime = "12:00";
-      }
-      if (taskData.dueDate.endDate && !taskData.dueDate.endTime) {
-        taskData.dueDate.endTime = "23:59";
-      }
+    parseTime(taskData.dueDate.startTime);
+    parseTime(taskData.dueDate.endTime);
+    determineTaskStatus(taskData, currentDate);
+}
 
-      // Calculate end date and time based on duration if end date is not provided
-      if (!taskData.dueDate.endDate && taskData.dueDate.startDate && taskData.dueDate.duration && taskData.dueDate.durationType) {
-        const newEndDate = new Date(taskData.dueDate.startDate);
-        switch (taskData.dueDate.durationType) {
-          case "Minutes":
-            newEndDate.setMinutes(newEndDate.getMinutes() + taskData.dueDate.duration);
-            break;
-          case "Hours":
-            newEndDate.setHours(newEndDate.getHours() + taskData.dueDate.duration);
-            break;
-          case "Days":
-            newEndDate.setDate(newEndDate.getDate() + taskData.dueDate.duration);
-            break;
-          case "Weeks":
-            newEndDate.setDate(newEndDate.getDate() + (taskData.dueDate.duration * 7));
-            break;
-          case "Months":
-            newEndDate.setMonth(newEndDate.getMonth() + taskData.dueDate.duration);
-            break;
-          default:
-            throw new Error("Invalid duration type");
-        }
-        // Set end time to end of the day
-        newEndDate.setHours(23, 59, 59, 999);
-        taskData.dueDate.endDate = newEndDate;
-        taskData.dueDate.endTime = "23:59";
-      }
+    console.log("Task data before creating:", taskData);
 
-      // Determine task status based on current date and due date
-      if (taskData.dueDate.endDate) {
-        if (currentDate > taskData.dueDate.endDate && taskData.status !== "Completed") {
-          taskData.status = "Over-due";
-        } else if (currentDate >= taskData.dueDate.startDate || currentDate <= taskData.dueDate.endDate) {
-          taskData.status = "Progress";
-        } else {
-          taskData.status = "Todo";
-        }
-      } else if (currentDate > taskData.dueDate.startDate) {
-        taskData.status = "Late";
-      }
-      // Calculate duration and duration type based on start date, end date, start time, and end time
-// Calculate duration and duration type based on start date, end date, start time, and end time
-// Parse time and convert to 24-hour format
+    const createdTask = await Task.create(taskData);
+
+    res.status(201).json(createdTask);
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+const setDefaultTime = (dueDate) => {
+  if (dueDate.startDate && !dueDate.startTime) {
+    dueDate.startTime = "12:00";
+  }
+  if (dueDate.endDate && !dueDate.endTime) {
+    dueDate.endTime = "23:59";
+  }
+};
+
 const parseTime = (timeString) => {
   const [time, period] = timeString.split(" ");
   let [hours, minutes] = time.split(":");
@@ -71,91 +67,122 @@ const parseTime = (timeString) => {
   } else if (period === "AM" && hours === 12) {
     hours = 0;
   }
-  return { hours, minutes };
+  const parsedTime = { hours, minutes };
+  console.log("Parsed time:", parsedTime);
+  return parsedTime;
 };
 
-// Calculate duration and duration type based on start date, end date, start time, and end time
-console.log("Calculating duration...");
-if (taskData.dueDate.startDate && taskData.dueDate.endDate && taskData.dueDate.startTime && taskData.dueDate.endTime) {
-  const startDate = new Date(taskData.dueDate.startDate);
-  const endDate = new Date(taskData.dueDate.endDate);
-  const startTime = parseTime(taskData.dueDate.startTime);
-  const endTime = parseTime(taskData.dueDate.endTime);
+const calculateEndDate = (dueDate) => {
+  const { startDate, duration, durationType } = dueDate;
+  const newEndDate = new Date(startDate);
+  switch (durationType) {
+    case "Minutes":
+      newEndDate.setMinutes(newEndDate.getMinutes() + duration);
+      break;
+    case "Hours":
+      newEndDate.setHours(newEndDate.getHours() + duration);
+      break;
+    case "Days":
+      newEndDate.setDate(newEndDate.getDate() + duration);
+      break;
+    case "Weeks":
+      newEndDate.setDate(newEndDate.getDate() + (duration * 7));
+      break;
+    case "Months":
+      newEndDate.setMonth(newEndDate.getMonth() + duration);
+      break;
+    default:
+      throw new Error("Invalid duration type");
+  }
+  newEndDate.setHours(23, 59, 59, 999);
+  return newEndDate;
+};
+
+const determineTaskStatus = (taskData, currentDate) => {
+  const { startDate, endDate, status } = taskData;
+
+  if (endDate) {
+    const currentDateTime = new Date(currentDate);
+    const endDateTime = new Date(endDate);
+
+    if (currentDateTime > endDateTime && status !== "Completed") {
+      taskData.status = "Overdue";
+    } else if (currentDateTime >= startDate && currentDateTime <= endDateTime) {
+      taskData.status = "Progress";
+    } else {
+      taskData.status = "Todo";
+    }
+  } else if (currentDate > startDate) {
+    taskData.status = "Late";
+  }
+};
 
 
 
-  const startDateTime = new Date(startDate);
-  startDateTime.setHours(startTime.hours, startTime.minutes);
-  const endDateTime = new Date(endDate);
-  endDateTime.setHours(endTime.hours, endTime.minutes);
+const generateDurationAndType = (dueDate) => {
+  const { startDate, endDate, duration, durationType } = dueDate;
 
-
-  const durationMs = endDateTime - startDateTime;
-
-
-  // Convert duration to hours
-  const durationHours = durationMs / (1000 * 60 * 60);
-
-
-  // Determine duration type based on duration
-  let durationType;
-  if (durationHours < 1) {
-    durationType = "Minutes";
-    taskData.dueDate.duration = durationMs / (1000 * 60); // Duration in minutes
-  } else if (durationHours >= 1 && durationHours < 24) {
-    durationType = "Hours";
-    taskData.dueDate.duration = durationHours; // Duration in hours
-  } else if (durationHours >= 24 && durationHours < (24 * 7)) {
-    durationType = "Days";
-    taskData.dueDate.duration = durationHours / 24; // Duration in days
-  } else if (durationHours >= (24 * 7) && durationHours < (24 * 30)) {
-    durationType = "Weeks";
-    taskData.dueDate.duration = durationHours / (24 * 7); // Duration in weeks
-  } else {
-    durationType = "Months";
-    taskData.dueDate.duration = durationHours / (24 * 30); // Duration in months
+  if (!startDate) {
+    throw new Error("Start date is required.");
   }
 
-  taskData.dueDate.durationType = durationType;
+  if (!endDate && duration && durationType) {
+    dueDate.endDate = calculateEndDate(dueDate);
+  }
 
-}
+  if (!endDate && (!duration || !durationType)) {
+    throw new Error("Either end date or duration and duration type are required.");
+  }
 
+  if (endDate && !duration && !durationType) {
+    // Calculate duration and duration type based on start and end dates
+    const parsedStartDate = new Date(startDate);
+    const parsedEndDate = new Date(endDate);
+    const durationMs = parsedEndDate.getTime() - parsedStartDate.getTime();
+    if (durationMs < 0) {
+      throw new Error("End date must be after start date.");
     }
 
-    console.log(taskData); // Log taskData before creating the task
 
-    // Create the task
-    const createdTask = await Task.create(taskData);
-
-    // Respond with the created task
-    res.status(201).json(createdTask);
-  } catch (error) {
-    // Handle errors
-    res.status(400).json({ error: error.message });
+    const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+    let calculatedDurationType;
+    if (durationHours < 1) {
+      calculatedDurationType = "Minutes";
+      dueDate.duration = durationMs / (1000 * 60);
+    } else if (durationHours >= 1 && durationHours < 24) {
+      calculatedDurationType = "Hours";
+      dueDate.duration = durationHours;
+    } else if (durationHours >= 24 && durationHours < (24 * 7)) {
+      calculatedDurationType = "Days";
+      dueDate.duration = durationHours / 24;
+    } else if (durationHours >= (24 * 7) && durationHours < (24 * 30)) {
+      calculatedDurationType = "Weeks";
+      dueDate.duration = durationHours / (24 * 7);
+    } else {
+      calculatedDurationType = "Months";
+      dueDate.duration = durationHours / (24 * 30);
+    }
+    dueDate.durationType = calculatedDurationType;
   }
 };
 
-
-const getAllTasks = async (req, res) => {
+const getAllTasks = async (req, res,next) => {
     try {
         const tasks = await Task.find();
         res.status(200).json(tasks);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+next(err);
     }
 };
-const getTaskById=async (req,res) => {
+const getTaskById=async (req,res,next) => {
     try{
         const task = await Task.findById(req.params.id)
         res.status(200).json(task)
     }catch (err) {
-        res.status(500).json({
-            error: err.message
-
-        })
+  next(err)
     }
 }
-const updateTask = async (req, res) => {
+const updateTask = async (req, res,next) => {
     try {
         const task = await Task.findById(req.params.id);
         if (!task) {
@@ -182,11 +209,11 @@ const updateTask = async (req, res) => {
 
         res.status(200).json(task);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+      next(err);
     }
 };
 
-const deleteTask = async (req, res) => {
+const deleteTask = async (req, res,next) => {
   try {
       const task = await Task.findByIdAndDelete(req.params.id);
       if (!task) {
@@ -194,7 +221,7 @@ const deleteTask = async (req, res) => {
       }
       res.status(200).json(task);
   } catch (err) {
-      res.status(500).json({ error: err.message });
+     next(err);
   }
 }
 
@@ -204,6 +231,7 @@ const todoControllers={
     getAllTasks,
     getTaskById,
     updateTask,
-    deleteTask
+    deleteTask,
+    createTaskValidation
 }
 export default todoControllers

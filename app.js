@@ -11,6 +11,7 @@ import connectDB from './db/connection.js'
 import userRouters from './routers/users.routers.js'
 import todoRouter from './routers/todo.routers.js';
 import { requireAuth } from './middleware/auth.js'; // Import the requireAuth middleware
+import ErrorHandler from './middleware/ErrorHandler.js';
 
 const combinedRouter = express.Router();
 app.use(bodyParser.json())
@@ -41,3 +42,4 @@ const start = async () => {
     }
 }
 start()
+app.use(ErrorHandler)
