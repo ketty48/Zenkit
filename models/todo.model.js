@@ -1,4 +1,6 @@
 import mongoose  from "mongoose";
+const { Schema } = mongoose;
+import activity from "./activity.model.js";
 const todoSchema =new mongoose.Schema({
   name: {
     type: String,
@@ -30,9 +32,10 @@ workload:{
     type: Number,
     required: false,
     min:1,
-    max:2,
+    max:5,
 
 },
+activities: [activity.schema],
 dueDate: {
     startDate: {
         type: Date,

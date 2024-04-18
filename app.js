@@ -12,6 +12,7 @@ import userRouters from './routers/users.routers.js'
 import todoRouter from './routers/todo.routers.js';
 import { requireAuth } from './middleware/auth.js'; // Import the requireAuth middleware
 import ErrorHandler from "./middleware/ErrorHandler.js";
+import tagRouter from "./routers/tag.routes.js";
 const combinedRouter = express.Router();
 app.use(bodyParser.json())
 const corsOptions = {
@@ -22,6 +23,7 @@ const corsOptions = {
 app.use('/', userRouters);
 
 app.use('/todo', todoRouter);
+app.use('/todos',tagRouter);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use('/',(req,res)=>{

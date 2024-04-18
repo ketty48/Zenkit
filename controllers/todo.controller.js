@@ -30,11 +30,16 @@ const getTasks = async (req, res, next) => {
         next(error);
     }
 }
-const updateTask = async (req, res, next) => {
+export const updateTask = async (req, res, next) => {
+    const errors = validationResult(req);
     const taskId = req.query.id;
     const updates = req.body;
 
     try {
+        if (!errors.isEmpty()) {
+            next(new BadRequestError(errors.array()[0].msg));
+        }
+  
         const updatedTask = await TaskModel.findByIdAndUpdate(taskId, updates, { new: true });
         if (!updatedTask) {
             return next(new NotFoundError(`Task not found`));

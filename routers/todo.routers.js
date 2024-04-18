@@ -13,7 +13,7 @@ router.use(requireAuth);
 router.post('/createTask',setTime, addTaskValidation,todoControllers.addTask)
 router.get('/getAllTasks',todoControllers.getTasks);
 router.get('/:id',todoControllers.findById)
-router.put('/:id',todoControllers.updateTask)
+router.put('/:id',addTaskValidation,todoControllers.updateTask)
 router.delete('/:id',todoControllers.deleteTask);
 router.get('/listByStatus',todoControllers.findByStatus)
 router.get('/listByTag',todoControllers.findByTag)
