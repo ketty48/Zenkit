@@ -1,13 +1,36 @@
 {
-    "swagger": "2.0",
-    "info": {
-      "title": "Todo API",
-      "description": "API for managing tasks",
-      "version": "1.0.0"
+  "swagger": "2.0",
+  "info": {
+    "title": "Zenkit Clone Application",
+    "description": "This is the API Specification for the zenkit clone app backend server.",
+    "contact": {
+      "email": "ketymagnifique@gmail.com"
     },
-    "host": "localhost:5000",
-    "basePath": "",
-    "schemes": ["http", "https"],
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/license/mit"
+    },
+    "version": "1.0.0"
+  },
+  "externalDocs": {
+    "description": "Get source code",
+    "url": "https://github.com/ketty48/Zenkit.git"
+  },
+  "basePath": "/",
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local server"
+    },
+    {
+      "url": "https://zenkit-clone.onrender.com",
+      "description": "Production server"
+    }
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
     "paths": {
       "/register": {
         "post": {

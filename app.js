@@ -5,20 +5,19 @@ dotenv.config()
 import express from 'express'
 const app = express()
 import bodyParser from 'body-parser'
-
+import mongoose from "mongoose";
 import cors from 'cors'
-import connectDB from './db/connection.js'
+import configurations from './db/connection.js'
 import userRouters from './routers/users.routers.js'
 import todoRouter from './routers/todo.routers.js';
 import { requireAuth } from './middleware/auth.js'; // Import the requireAuth middleware
-import ErrorHandler from './middleware/ErrorHandler.js';
-
+import ErrorHandler from "./middleware/ErrorHandler.js";
 const combinedRouter = express.Router();
 app.use(bodyParser.json())
 const corsOptions = {
     allowedHeaders: ["Authorization","Content-Type"],
     methods: ["GET", "POST", "UPDATE" ],
-    origin: ["http://192.168.1.150:8080", "//https://contact-app-client-xbck.onrender.com/"],
+    origin: ["http://localhost:5173", configurations.CLIENT_APP],
 }
 app.use('/', userRouters);
 
@@ -31,15 +30,12 @@ app.use('/',(req,res)=>{
     })
 })
 
-const start = async () => {
-    try {
-        await connectDB(process.env.MONGODB_URI)
-        app.listen(process.env.PORT, () =>
-            console.log(`Server is running on port ${process.env.PORT}`)
-        )
-    } catch (error) {
-        console.log(error)
-    }
-}
-start()
-app.use(ErrorHandler)
+// Database connectivity
+mongoose.connect(configurations.MONGODB_CONNECTION_STRING.toString())
+.then(() => console.log("Connected to MongoDB"))
+.catch(err => console.log(err));
+
+app.listen(configurations.PORT, () => console.log(`Server is running on port ${configurations.PORT}`))
+
+// Error handling middleware
+app.use(ErrorHandler);

@@ -17,6 +17,22 @@ status: {
     },
     default: "Todo",
 },
+parentTask: {
+    type: Schema.Types.ObjectId,
+    ref: "Task",
+    required: false,
+},
+tags: {
+    type: Array,
+    required: false,
+},
+workload:{
+    type: Number,
+    required: false,
+    min:1,
+    max:2,
+
+},
 dueDate: {
     startDate: {
         type: Date,
